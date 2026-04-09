@@ -15,6 +15,15 @@
     "orchestration"
   ],
   "installer_target": "claude",
+  "exclude_rules": [
+    "csharp",
+    "dart",
+    "java",
+    "kotlin",
+    "perl",
+    "php",
+    "swift"
+  ],
   "skill_renames": {
     "everything-claude-code": "ecc"
   },

@@ -2,8 +2,9 @@
 # deploy.sh — Selective ECC deployment for the personal ecc branch.
 #
 # Reads ecc.config.json and deploys:
-#   Phase 1: Core modules via the existing ecc installer
-#   Phase 2: Individual skills, skipping those in the exclude list
+#   Phase 1:   Core modules via the existing ecc installer
+#   Phase 1.5: Remove excluded rule packs
+#   Phase 2:   Individual skills, skipping those in the exclude list
 #
 # Usage:
 #   ./deploy.sh              # deploy to ~/.claude
@@ -83,6 +84,7 @@ INSTALLER_TARGET="${INSTALLER_TARGET:-claude}"
 # Collect arrays
 mapfile -t MODULES < <(read_json_array installer_modules)
 mapfile -t EXCLUDE_SKILLS < <(read_json_array exclude_skills)
+mapfile -t EXCLUDE_RULES < <(read_json_array exclude_rules)
 
 # Collect rename map
 declare -A SKILL_RENAMES
@@ -97,7 +99,7 @@ echo "========================================"
 echo "  Source:    $SCRIPT_DIR"
 echo "  Target:    $DEPLOY_TARGET"
 echo "  Modules:   ${#MODULES[@]}"
-echo "  Excluded:  ${#EXCLUDE_SKILLS[@]} skills"
+echo "  Excluded:  ${#EXCLUDE_SKILLS[@]} skills, ${#EXCLUDE_RULES[@]} rule packs"
 echo "  Renames:   ${#SKILL_RENAMES[@]}"
 echo "  Dry run:   $DRY_RUN"
 echo "========================================"
@@ -125,6 +127,36 @@ node "${SCRIPT_DIR}/scripts/install-apply.js" "${INSTALL_ARGS[@]}" || {
   echo "[ecc-deploy] Warning: installer returned non-zero, continuing with Phase 2..." >&2
 }
 echo ""
+
+# ============================================================
+# Phase 1.5: Remove excluded rule packs
+# ============================================================
+if [[ ${#EXCLUDE_RULES[@]} -gt 0 ]]; then
+  echo "[Phase 1.5] Filtering rule packs (excluding ${#EXCLUDE_RULES[@]})..."
+  RULES_DST="${DEPLOY_TARGET}/rules"
+
+  rules_removed=0
+  for rule_name in "${EXCLUDE_RULES[@]}"; do
+    rule_path="${RULES_DST}/${rule_name}"
+    if $DRY_RUN; then
+      if [[ -d "$rule_path" ]]; then
+        echo "  REMOVE  rules/$rule_name/"
+      else
+        echo "  SKIP    rules/$rule_name/ (not present)"
+      fi
+    else
+      if [[ -d "$rule_path" ]]; then
+        rm -rf "$rule_path"
+        rules_removed=$((rules_removed + 1))
+      fi
+    fi
+  done
+
+  if ! $DRY_RUN; then
+    echo "  Removed: $rules_removed rule packs"
+  fi
+  echo ""
+fi
 
 # ============================================================
 # Phase 2: Selective skill deployment
@@ -176,6 +208,7 @@ echo "========================================"
 echo "  Deploy complete"
 echo "========================================"
 echo "  Skills: $deployed deployed, $skipped excluded"
+echo "  Rules:  ${#EXCLUDE_RULES[@]} packs excluded"
 echo "  Target: $DEPLOY_TARGET"
 
 if $DRY_RUN; then
