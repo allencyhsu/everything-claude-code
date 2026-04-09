@@ -5,6 +5,7 @@
 #   Phase 1:   Core modules via the existing ecc installer
 #   Phase 1.5: Remove excluded rule packs
 #   Phase 2:   Individual skills, skipping those in the exclude list
+#   Phase 3:   Remove legacy shim commands
 #
 # Usage:
 #   ./deploy.sh              # deploy to ~/.claude
@@ -85,6 +86,7 @@ INSTALLER_TARGET="${INSTALLER_TARGET:-claude}"
 mapfile -t MODULES < <(read_json_array installer_modules)
 mapfile -t EXCLUDE_SKILLS < <(read_json_array exclude_skills)
 mapfile -t EXCLUDE_RULES < <(read_json_array exclude_rules)
+mapfile -t LEGACY_SHIMS < <(read_json_array remove_legacy_shims)
 
 # Collect rename map
 declare -A SKILL_RENAMES
@@ -202,6 +204,36 @@ echo "  Skipped:  $skipped skills"
 echo ""
 
 # ============================================================
+# Phase 3: Remove legacy shim commands
+# ============================================================
+if [[ ${#LEGACY_SHIMS[@]} -gt 0 ]]; then
+  echo "[Phase 3] Removing legacy shim commands (${#LEGACY_SHIMS[@]})..."
+  CMDS_DST="${DEPLOY_TARGET}/commands"
+
+  shims_removed=0
+  for shim_file in "${LEGACY_SHIMS[@]}"; do
+    shim_path="${CMDS_DST}/${shim_file}"
+    if $DRY_RUN; then
+      if [[ -f "$shim_path" ]]; then
+        echo "  REMOVE  commands/$shim_file"
+      else
+        echo "  SKIP    commands/$shim_file (not present)"
+      fi
+    else
+      if [[ -f "$shim_path" ]]; then
+        rm -f "$shim_path"
+        shims_removed=$((shims_removed + 1))
+      fi
+    fi
+  done
+
+  if ! $DRY_RUN; then
+    echo "  Removed: $shims_removed legacy shims"
+  fi
+  echo ""
+fi
+
+# ============================================================
 # Summary
 # ============================================================
 echo "========================================"
@@ -209,6 +241,7 @@ echo "  Deploy complete"
 echo "========================================"
 echo "  Skills: $deployed deployed, $skipped excluded"
 echo "  Rules:  ${#EXCLUDE_RULES[@]} packs excluded"
+echo "  Shims:  ${#LEGACY_SHIMS[@]} legacy commands removed"
 echo "  Target: $DEPLOY_TARGET"
 
 if $DRY_RUN; then

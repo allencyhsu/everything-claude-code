@@ -24,6 +24,20 @@
     "php",
     "swift"
   ],
+  "remove_legacy_shims": [
+    "agent-sort.md",
+    "claw.md",
+    "context-budget.md",
+    "devfleet.md",
+    "docs.md",
+    "e2e.md",
+    "eval.md",
+    "orchestrate.md",
+    "prompt-optimize.md",
+    "rules-distill.md",
+    "tdd.md",
+    "verify.md"
+  ],
   "skill_renames": {
     "everything-claude-code": "ecc"
   },
