@@ -6,6 +6,7 @@
 #   Phase 1.5: Remove excluded rule packs
 #   Phase 2:   Individual skills, skipping those in the exclude list
 #   Phase 3:   Remove unwanted commands (legacy shims + excluded language commands)
+#   Phase 4:   Remove unwanted agents (excluded language/domain agents)
 #
 # Usage:
 #   ./deploy.sh              # deploy to ~/.claude
@@ -87,6 +88,7 @@ mapfile -t MODULES < <(read_json_array installer_modules)
 mapfile -t EXCLUDE_SKILLS < <(read_json_array exclude_skills)
 mapfile -t EXCLUDE_RULES < <(read_json_array exclude_rules)
 mapfile -t REMOVE_CMDS < <(read_json_array remove_commands)
+mapfile -t REMOVE_AGENTS < <(read_json_array remove_agents)
 
 # Collect rename map
 declare -A SKILL_RENAMES
@@ -101,7 +103,7 @@ echo "========================================"
 echo "  Source:    $SCRIPT_DIR"
 echo "  Target:    $DEPLOY_TARGET"
 echo "  Modules:   ${#MODULES[@]}"
-echo "  Excluded:  ${#EXCLUDE_SKILLS[@]} skills, ${#EXCLUDE_RULES[@]} rule packs"
+echo "  Excluded:  ${#EXCLUDE_SKILLS[@]} skills, ${#EXCLUDE_RULES[@]} rule packs, ${#REMOVE_AGENTS[@]} agents"
 echo "  Renames:   ${#SKILL_RENAMES[@]}"
 echo "  Dry run:   $DRY_RUN"
 echo "========================================"
@@ -234,6 +236,36 @@ if [[ ${#REMOVE_CMDS[@]} -gt 0 ]]; then
 fi
 
 # ============================================================
+# Phase 4: Remove unwanted agents
+# ============================================================
+if [[ ${#REMOVE_AGENTS[@]} -gt 0 ]]; then
+  echo "[Phase 4] Removing unwanted agents (${#REMOVE_AGENTS[@]})..."
+  AGENTS_DST="${DEPLOY_TARGET}/agents"
+
+  agents_removed=0
+  for agent_file in "${REMOVE_AGENTS[@]}"; do
+    agent_path="${AGENTS_DST}/${agent_file}"
+    if $DRY_RUN; then
+      if [[ -f "$agent_path" ]]; then
+        echo "  REMOVE  agents/$agent_file"
+      else
+        echo "  SKIP    agents/$agent_file (not present)"
+      fi
+    else
+      if [[ -f "$agent_path" ]]; then
+        rm -f "$agent_path"
+        agents_removed=$((agents_removed + 1))
+      fi
+    fi
+  done
+
+  if ! $DRY_RUN; then
+    echo "  Removed: $agents_removed agents"
+  fi
+  echo ""
+fi
+
+# ============================================================
 # Summary
 # ============================================================
 echo "========================================"
@@ -242,6 +274,7 @@ echo "========================================"
 echo "  Skills: $deployed deployed, $skipped excluded"
 echo "  Rules:  ${#EXCLUDE_RULES[@]} packs excluded"
 echo "  Cmds:   ${#REMOVE_CMDS[@]} commands removed"
+echo "  Agents: ${#REMOVE_AGENTS[@]} agents removed"
 echo "  Target: $DEPLOY_TARGET"
 
 if $DRY_RUN; then

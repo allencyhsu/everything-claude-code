@@ -45,6 +45,17 @@
     "tdd.md",
     "verify.md"
   ],
+  "remove_agents": [
+    "csharp-reviewer.md",
+    "dart-build-resolver.md",
+    "flutter-reviewer.md",
+    "healthcare-reviewer.md",
+    "java-build-resolver.md",
+    "java-reviewer.md",
+    "kotlin-build-resolver.md",
+    "kotlin-reviewer.md",
+    "pytorch-build-resolver.md"
+  ],
   "skill_renames": {
     "everything-claude-code": "ecc"
   },
