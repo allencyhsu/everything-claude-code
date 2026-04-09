@@ -24,7 +24,7 @@
     "php",
     "swift"
   ],
-  "remove_legacy_shims": [
+  "remove_commands": [
     "agent-sort.md",
     "claw.md",
     "context-budget.md",
@@ -32,6 +32,13 @@
     "docs.md",
     "e2e.md",
     "eval.md",
+    "flutter-build.md",
+    "flutter-review.md",
+    "flutter-test.md",
+    "gradle-build.md",
+    "kotlin-build.md",
+    "kotlin-review.md",
+    "kotlin-test.md",
     "orchestrate.md",
     "prompt-optimize.md",
     "rules-distill.md",

@@ -5,7 +5,7 @@
 #   Phase 1:   Core modules via the existing ecc installer
 #   Phase 1.5: Remove excluded rule packs
 #   Phase 2:   Individual skills, skipping those in the exclude list
-#   Phase 3:   Remove legacy shim commands
+#   Phase 3:   Remove unwanted commands (legacy shims + excluded language commands)
 #
 # Usage:
 #   ./deploy.sh              # deploy to ~/.claude
@@ -86,7 +86,7 @@ INSTALLER_TARGET="${INSTALLER_TARGET:-claude}"
 mapfile -t MODULES < <(read_json_array installer_modules)
 mapfile -t EXCLUDE_SKILLS < <(read_json_array exclude_skills)
 mapfile -t EXCLUDE_RULES < <(read_json_array exclude_rules)
-mapfile -t LEGACY_SHIMS < <(read_json_array remove_legacy_shims)
+mapfile -t REMOVE_CMDS < <(read_json_array remove_commands)
 
 # Collect rename map
 declare -A SKILL_RENAMES
@@ -204,31 +204,31 @@ echo "  Skipped:  $skipped skills"
 echo ""
 
 # ============================================================
-# Phase 3: Remove legacy shim commands
+# Phase 3: Remove unwanted commands
 # ============================================================
-if [[ ${#LEGACY_SHIMS[@]} -gt 0 ]]; then
-  echo "[Phase 3] Removing legacy shim commands (${#LEGACY_SHIMS[@]})..."
+if [[ ${#REMOVE_CMDS[@]} -gt 0 ]]; then
+  echo "[Phase 3] Removing unwanted commands (${#REMOVE_CMDS[@]})..."
   CMDS_DST="${DEPLOY_TARGET}/commands"
 
-  shims_removed=0
-  for shim_file in "${LEGACY_SHIMS[@]}"; do
-    shim_path="${CMDS_DST}/${shim_file}"
+  cmds_removed=0
+  for cmd_file in "${REMOVE_CMDS[@]}"; do
+    cmd_path="${CMDS_DST}/${cmd_file}"
     if $DRY_RUN; then
-      if [[ -f "$shim_path" ]]; then
-        echo "  REMOVE  commands/$shim_file"
+      if [[ -f "$cmd_path" ]]; then
+        echo "  REMOVE  commands/$cmd_file"
       else
-        echo "  SKIP    commands/$shim_file (not present)"
+        echo "  SKIP    commands/$cmd_file (not present)"
       fi
     else
-      if [[ -f "$shim_path" ]]; then
-        rm -f "$shim_path"
-        shims_removed=$((shims_removed + 1))
+      if [[ -f "$cmd_path" ]]; then
+        rm -f "$cmd_path"
+        cmds_removed=$((cmds_removed + 1))
       fi
     fi
   done
 
   if ! $DRY_RUN; then
-    echo "  Removed: $shims_removed legacy shims"
+    echo "  Removed: $cmds_removed commands"
   fi
   echo ""
 fi
@@ -241,7 +241,7 @@ echo "  Deploy complete"
 echo "========================================"
 echo "  Skills: $deployed deployed, $skipped excluded"
 echo "  Rules:  ${#EXCLUDE_RULES[@]} packs excluded"
-echo "  Shims:  ${#LEGACY_SHIMS[@]} legacy commands removed"
+echo "  Cmds:   ${#REMOVE_CMDS[@]} commands removed"
 echo "  Target: $DEPLOY_TARGET"
 
 if $DRY_RUN; then
